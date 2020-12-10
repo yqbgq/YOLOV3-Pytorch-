@@ -1,5 +1,4 @@
 # ================================================================
-#   Copyright, All Rights Reserved
 #
 #   Editor      : Pycharm
 #   File name   : default_config
@@ -18,23 +17,47 @@ class train_config:
     # model_config_path = 'config/yolov3.cfg'  # 模型网络结构
     # data_config_path = 'config/coco.data'  # 配置数据集的使用情况
     class_path = 'data/coco.names'  # coco数据集类别标签
-    conf_thres = 0.8  # 物体置信度阈值
-    nms_thres = 0.4  # iou for nms的阈值
+    conf_threshold = 0.8  # 物体置信度阈值
+    nms_threshold = 0.4  # iou for nms的阈值
     # n_cpu = 0  # 批生成期间要使用的cpu线程数
     img_size = 416  # 输入图像尺寸的大小
     use_cuda = True  # 是否使用GPU
-    # visdom = True  # 是否使用visdom来可视化loss
     print_freq = 8  # 训练时，每N个batch显示
     lr_decay = 0.1  # 1e-3 -> 1e-4
 
     checkpoint_interval = 1  # 每隔几个模型保存一次
     checkpoint_dir = './checkpoints'  # 保存生成模型的路径
 
-    # load_model_path = None  # 加载预训练的模型的路径，为None代表不加载
-    # load_model_path=checkpoint_dir+'/latestbobo.pt'  # 预训练权重   (仅.pt)
+
+class dataset_config:
+    classes = 80
+    train_img_list_txt = "data/coco/trainvalno5k.txt"
+    valid = "data/coco/5k.txt"
+    names = "data/coco.names"
+
+
+class hyper_pars_config:
+    batch = 16
+    subdivisions = 1
+    width = 416
+    height = 416
+    channels = 3
+    momentum = 0.9
+    decay = 0.0005
+    angle = 0
+    saturation = 1.5
+    exposure = 1.5
+    hue = .1
+
+    learning_rate = 0.001
+    burn_in = 1000
+    max_batches = 500200
+    # policy = steps
+    steps = 400000, 450000
+    scales = .1, .1
 
 
 # 初始化该类的一个对象
 train_cfg = train_config()
-
-
+dataset_cfg = dataset_config()
+hyper_pars_cfg = hyper_pars_config()

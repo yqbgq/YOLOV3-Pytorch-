@@ -1,5 +1,4 @@
 # ================================================================
-#   Copyright, All Rights Reserved
 #
 #   Editor      : Pycharm
 #   File name   : cfg_reader
