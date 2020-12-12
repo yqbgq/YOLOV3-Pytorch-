@@ -34,6 +34,8 @@ class dataset_config:
     train_img_list_txt = "data/coco/trainvalno5k.txt"
     valid = "data/coco/5k.txt"
     names = "data/coco.names"
+    # 使用前缀进行拼接，得到绝对地址，感觉这段代码很丑，以后想想办法
+    prefix = "C://Users//huangwei//Desktop//PytorchNetHub//Yolov3_pytorch//data//coco"
 
 
 class hyper_pars_config:
