@@ -12,6 +12,7 @@
 from torch.utils import data
 from PIL import Image
 import numpy as np
+import torch
 
 from utils.default_config import dataset_cfg
 from utils.preprocess import preprocess_img, preprocess_label
@@ -33,7 +34,7 @@ class txt_loader(data.Dataset):
         self.img_shape = (img_size, img_size)
         self.max_objects = 50  # 设定一张图像最多真实存在50个物体（封装 图像真值框时使用到）
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> (torch.Tensor, torch.Tensor):
         """
         需要覆写的 Dataset 函数，用于从数据集中提取单张图像以及相应的标签
 
@@ -66,7 +67,7 @@ class txt_loader(data.Dataset):
         filled_labels = preprocess_label(label_path, w, h, padded_w, padded_h, pad, self.max_objects)
 
         # 返回 图像路径、处理后的图像tensor、坐标被归一化后的真值框filled_labels[50,5] 值在0-1之间
-        return img_path, input_img, filled_labels
+        return input_img, filled_labels
 
     def __len__(self):
         return len(self.img_files)

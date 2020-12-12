@@ -76,6 +76,7 @@ def preprocess_label(label_path, w, h, padded_w, padded_h, pad, max_objects):
     if labels is not None:
         filled_labels[range(len(labels))[:max_objects]] = labels[:max_objects]
     filled_labels = torch.from_numpy(filled_labels)
+    return filled_labels
 
 
 def preprocess_img_from_path(path):

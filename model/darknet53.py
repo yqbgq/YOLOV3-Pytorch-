@@ -96,7 +96,7 @@ class DarkNet(nn.Module):
 
         route_3 = out_data
 
-        return route_1, route_2, route_3
+        return self.get_yolo_data(route_1, route_2, route_3)
 
     def get_yolo_data(self, r1, r2, r3):
         r3 = self.conv_set_1(r3)

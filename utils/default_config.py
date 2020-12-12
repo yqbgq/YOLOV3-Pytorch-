@@ -13,7 +13,7 @@
 class train_config:
     epochs = 30  # 训练轮数
     image_folder = 'data/samples'  # 数据集地址
-    batch_size = 16  # batch大小
+    batch_size = 1  # batch大小
     # model_config_path = 'config/yolov3.cfg'  # 模型网络结构
     # data_config_path = 'config/coco.data'  # 配置数据集的使用情况
     class_path = 'data/coco.names'  # coco数据集类别标签

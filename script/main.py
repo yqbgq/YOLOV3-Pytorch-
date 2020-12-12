@@ -16,6 +16,7 @@ from torch import optim
 from torch.utils import data
 from torch.backends import cudnn
 from torchnet import meter
+import numpy as np
 
 from utils.default_config import train_cfg, dataset_cfg, hyper_pars_cfg
 from utils import model_utils
@@ -40,6 +41,7 @@ def main():
         model = model.cuda()
         cudnn.benchmark = True
     # print(model)
+    model.train()
 
     # 数据集加载器
     dataloader = torch.utils.data.DataLoader(
@@ -52,7 +54,27 @@ def main():
     # 计算所有损失的平均数和标准差，来统计一个epoch中损失的平均值
     loss_meter = meter.AverageValueMeter()
     previous_loss = float('inf')  # 表示正无穷
-    # TODO 马上要开始写训练部分了，也就是还有训练以及损失函数的计算了
+
+    for step in range(train_cfg.epochs):
+        # 清空仪表信息和混淆矩阵信息
+        loss_meter.reset()
+        # 每轮epoch
+        for batch_i, (images, targets) in enumerate(dataloader):
+            # images :处理后的图像tensor[16,3,416,416]        targets:坐标被归一化后的真值框filled_labels[16,50,5] 值在0-1之间
+            if train_cfg.use_cuda:
+                images = images.cuda()
+                targets = targets.cuda()
+
+            # 优化器梯度清零
+            optimizer.zero_grad()
+            # 得到网络输出值，作为损失 (loss :多尺度预测的总loss之和)
+            result = model(images)
+
+            for res in result:
+                print(res.shape)
+                print(res)
+
+            print("OK!!!")
 
 
 if __name__ == "__main__":
