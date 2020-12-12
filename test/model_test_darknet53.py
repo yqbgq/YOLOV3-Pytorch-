@@ -19,7 +19,7 @@ path = "C://Users//huangwei//Desktop//PytorchNetHub//Yolov3_pytorch//data//coco/
 
 dn = darknet53.DarkNet()
 
-input_img = preprocess.preprocess_img(path)  # type: torch.Tensor
+input_img = preprocess.preprocess_img_from_path(path)  # type: torch.Tensor
 input_img = torch.reshape(input_img, [1, 3, 416, 416])
 print("input data shape", input_img.shape)  # input data shape torch.Size([1, 3, 416, 416])
 
