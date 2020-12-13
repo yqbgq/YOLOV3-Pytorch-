@@ -23,6 +23,11 @@ from utils import model_utils
 from model import darknet53
 from dataset.load_from_txt import txt_loader
 
+anchors = torch.Tensor(
+    [[10, 13], [16, 30], [33, 23], [30, 61], [62, 45], [59, 119], [116, 90], [156, 198], [373, 326]]
+)
+feature_shape = [52, 26, 13]
+
 
 def main():
     os.makedirs('../checkpoints', exist_ok=True)  # the folders used to stored the checkpoints
@@ -74,9 +79,18 @@ def main():
                 resolution = result[i]
                 # 对不同解析度下的 feature map 进行解码，得到预测框位置，置信度以及预测类型
                 pred_boxes, conf, pred_cls = model_utils.decode(resolution, i)
-                print(pred_boxes)
+                # [1, 3, 13, 13, 4] 预测框的形状，其意义为：
+                # 对于batch_size里面的每一张图片，在3个不同的分辨率尺度下，对于13*13个网格中，分别预测
+                # 一个预测框
+                print(pred_boxes.shape)
+                anchor_idx = [_ for _ in range(3 * i, 3 * i + 3)]
+                gt_num, correct_num, mask, conf_mask, tx, ty, tw, th, tconf, tcls = model_utils.cal_statics(
+                    pred_boxes=pred_boxes, labels=targets, origin_anchors=anchors[anchor_idx],
+                    feature_shape=feature_shape[i], ignore_threshold=0.5
+                )
 
             # print(targets.shape)
+
             print("OK!!!")
 
 
