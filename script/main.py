@@ -39,7 +39,7 @@ def main():
 
     if train_cfg.use_cuda:
         model = model.cuda()
-        cudnn.benchmark = True
+        # cudnn.benchmark = True
     # print(model)
     model.train()
 
@@ -70,11 +70,10 @@ def main():
             # 得到网络输出值，作为损失 (loss :多尺度预测的总loss之和)
             result = model(images)
 
-            for res in result:
-                print(res.shape)
-                print(res)
-
-            print("OK!!!")
+            for i in range(3):
+                resolution = result[i]
+                # 对不同解析度下的 feature map 进行解码，得到预测框位置，置信度以及预测类型
+                pred_boxes, conf, pred_cls = model_utils.decode(resolution, i)
 
 
 if __name__ == "__main__":

@@ -112,7 +112,7 @@ class DarkNet(nn.Module):
         r1 = self.conv_set_3(r1)
         large_yolo_data = self.conv_yolo_3(r1)
 
-        return little_yolo_data, middle_yolo_data, large_yolo_data
+        return large_yolo_data, middle_yolo_data, little_yolo_data
 
 
 
