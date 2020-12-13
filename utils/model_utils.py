@@ -52,6 +52,67 @@ def bbox_iou(box1, box2, x1y1x2y2=True):
     return iou
 
 
+def cal_statics(pred_boxes, labels: torch.Tensor, origin_anchors: torch.Tensor, feature_shape, ignore_threshold):
+    batch_size = labels.shape[0]  # Batch 中图像的数量
+    anchors_num = origin_anchors.shape[0]  # 锚框的个数 为 3
+    class_num = 80  # 预测的类别数量
+    img_shape = feature_shape  # 特征图的大小 13 26 52
+
+    # 初始化参数
+    conf_mask = torch.ones(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全1
+
+    gt_num = 0  # 真值的数量，用于计算召回率
+    correct_num = 0  # 预测出有物体的个数，即真值框与原始锚框IOU最大的那个锚框对应的预测框， IOU>0.5则预测正确
+
+    for i in range(batch_size):
+        # 需要注意，这里的labels已经被填充为 [batch_size, 50, 5]
+        for j in range(labels.shape[1]):
+            # 表示已经遍历完所有的物体真值框
+            if torch.sum(labels[i, j]) == 0:
+                break
+
+            gt_num += 1
+
+            # 标签值中的坐标都经过了归一化，处于 0-1 之间
+            gt_x = labels[i, j, 1] * img_shape  # 转化为在特征图上的坐标
+            gt_y = labels[i, j, 2] * img_shape
+            gt_w = labels[i, j, 3] * img_shape
+            gt_h = labels[i, j, 4] * img_shape
+
+            # 获取网格框的索引，即左上角的角标
+            gt_i = int(gt_x)
+            gt_j = int(gt_y)
+
+            # gt_box 的预测框的shape为 [1,4]
+            gt_box = torch.FloatTensor(np.array([0, 0, gt_w, gt_h])).unsqueeze(0)
+
+            # Get shape of anchor box [3,4]   前两列全为0  后两列为 三个anchor的w、h
+            anchor_shapes = torch.FloatTensor(np.concatenate((np.zeros((len(origin_anchors), 2)),
+                                                              np.array(origin_anchors)), 1))
+
+            # Calculate iou between gt and anchor shapes
+            # 计算 一个真值框 与  对应的3个原始锚框  之间的iou
+            anchors_iou = bbox_iou(gt_box, anchor_shapes)
+
+            # Where the overlap is larger than threshold set mask to zero (ignore)   当iou重叠率>阈值，则置为0
+            # conf_mask全为1 [16,3,13,13]  当一个真值框 与  一个原始锚框  之间的iou > 阈值时，则置为0。
+            # 即 将 负责预测物体的网格及 它周围的网格 都置为0 不参与训练，后面的代码会 将负责预测物体的网格再置为1。
+            conf_mask[i, anchors_iou > ignore_threshold] = 0
+
+            # Find the best matching anchor box  找到 一个真值框 与  对应的3个原始锚框  之间的iou最大的  下标值
+            best_n = np.argmax(anchors_iou)
+
+            # Get ground truth box [1,4]
+            gt_box = torch.FloatTensor(np.array([gt_x, gt_y, gt_w, gt_h])).unsqueeze(0)
+
+            # Get the best prediction  [1,4]
+            # pred_boxes:在13x13尺度上的预测框
+            # pred_box：取出  3个原始锚框与 真值框 iou最大的那个锚框  对应的预测框
+            # 注意这里是 gt_j， gt_i的格式，因为 gt_j是对y的向下取整
+            pred_box = pred_boxes[i, best_n, gt_j, gt_i].unsqueeze(0)
+            # TODO 继续从这里开始
+
+
 def build_targets(pred_boxes, target, anchors, num_anchors, num_classes, dim, ignore_thres, img_dim):
     nB = target.size(0)  # batch个数  16
     nA = num_anchors  # 锚框个数   3
@@ -167,6 +228,7 @@ def decode(conv_output: torch.Tensor, i):
     :return: 网格
     """
     # shape: [batch_size, 255, feature_map_shape, feature_map_shape]
+    conv_output = conv_output.data.cpu()
     conv_shape = conv_output.shape
     batch_size = conv_shape[0]
     output_size = conv_shape[2]
@@ -178,12 +240,12 @@ def decode(conv_output: torch.Tensor, i):
     conv_output = torch.reshape(conv_output, [batch_size, 3, output_size, output_size, 5 + dataset_cfg.classes])
 
     # Get outputs    85中0-3 为预测的框偏移，4为 物体置信度（是否有物体）  5： 为多类别的分类概率
-    x = torch.sigmoid(conv_output[..., 0]).cuda()  # Center x  [16,3,13,13]
-    y = torch.sigmoid(conv_output[..., 1]).cuda()  # Center y  [16,3,13,13]
-    w = conv_output[..., 2].cuda()  # Width     [16,3,13,13]
-    h = conv_output[..., 3].cuda()  # Height    [16,3,13,13]
-    conf = torch.sigmoid(conv_output[..., 4]).cuda()  # Conf      [16,3,13,13]
-    pred_cls = torch.sigmoid(conv_output[..., 5:]).cuda()  # Cls pred. [16,3,13,13,80]
+    x = torch.sigmoid(conv_output[..., 0])  # Center x  [16,3,13,13]
+    y = torch.sigmoid(conv_output[..., 1])  # Center y  [16,3,13,13]
+    w = conv_output[..., 2]  # Width     [16,3,13,13]
+    h = conv_output[..., 3]  # Height    [16,3,13,13]
+    conf = torch.sigmoid(conv_output[..., 4])  # Conf      [16,3,13,13]
+    pred_cls = torch.sigmoid(conv_output[..., 5:])  # Cls pred. [16,3,13,13,80]
 
     # 好了，接下来需要画网格了，其中，output_size 等于 13、26 或者 52
 
@@ -197,10 +259,10 @@ def decode(conv_output: torch.Tensor, i):
     #      view(x.shape)                      ->  resize成[16.3.13.13]的tensor
     # grid_x、grid_y用于 定位 feature map的网格左上角坐标
     grid_x = torch.linspace(0, output_size - 1, output_size).repeat(output_size, 1).repeat(
-        batch_size * 3, 1, 1).view(x.shape).cuda()  # [16.3.13.13]  每行内容为0-12,共13行
+        batch_size * 3, 1, 1).view(x.shape)  # [16.3.13.13]  每行内容为0-12,共13行
 
     grid_y = torch.linspace(0, output_size - 1, output_size).repeat(output_size, 1).t().repeat(
-        batch_size * 3, 1, 1).view(y.shape).cuda()  # [16.3.13.13]  每列内容为0-12,共13列（因为使用转置T）
+        batch_size * 3, 1, 1).view(y.shape)  # [16.3.13.13]  每列内容为0-12,共13列（因为使用转置T）
 
     scaled_anchors = torch.Tensor([(a_w / stride, a_h / stride) for a_w, a_h in anchors])  # 将 原图尺度的锚框也缩放到统一尺度下
 
@@ -208,11 +270,11 @@ def decode(conv_output: torch.Tensor, i):
     anchor_h = scaled_anchors[:, 1][mask]
 
     # 这里要判断一下是不是有 CUDA 然后转换到 GPU 上
-    anchor_h = anchor_h.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(h.shape).cuda()
-    anchor_w = anchor_w.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(w.shape).cuda()
+    anchor_h = anchor_h.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(h.shape)
+    anchor_w = anchor_w.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(w.shape)
 
     # Add offset and scale with anchors  给锚框添加偏移量和比例
-    pred_boxes = torch.Tensor(conv_output[..., :4].shape).cuda()  # 新建一个tensor[16,3,13,13,4]
+    pred_boxes = torch.Tensor(conv_output[..., :4].shape)  # 新建一个tensor[16,3,13,13,4]
     # pred_boxes为 在13x13的feature map尺度上的预测框
     # x,y为预测值（网格内的坐标，经过sigmoid之后值为0-1之间） grid_x，grid_y定位网格左上角偏移坐标（值在0-12之间）
     pred_boxes[..., 0] = x.data + grid_x

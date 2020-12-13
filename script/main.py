@@ -39,7 +39,7 @@ def main():
 
     if train_cfg.use_cuda:
         model = model.cuda()
-        # cudnn.benchmark = True
+        cudnn.benchmark = True
     # print(model)
     model.train()
 
@@ -74,6 +74,10 @@ def main():
                 resolution = result[i]
                 # 对不同解析度下的 feature map 进行解码，得到预测框位置，置信度以及预测类型
                 pred_boxes, conf, pred_cls = model_utils.decode(resolution, i)
+                print(pred_boxes)
+
+            # print(targets.shape)
+            print("OK!!!")
 
 
 if __name__ == "__main__":
