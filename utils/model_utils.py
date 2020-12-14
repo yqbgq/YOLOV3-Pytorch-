@@ -231,4 +231,4 @@ def decode(conv_output: torch.Tensor, i):
     pred_boxes[..., 2] = torch.exp(w.data) * anchor_w
     pred_boxes[..., 3] = torch.exp(h.data) * anchor_h
 
-    return pred_boxes, conf, pred_cls
+    return pred_boxes, conf, pred_cls, x, y, w, h
