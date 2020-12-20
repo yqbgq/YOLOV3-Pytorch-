@@ -72,7 +72,7 @@ def main():
         with trange(len(dataloader)) as t:
             iter_data = iter(dataloader)
             # 每轮epoch
-            for batch_i in t:
+            for _ in t:
                 (images, targets) = next(iter_data)
 
                 # images :处理后的图像tensor[16,3,416,416]        targets:坐标被归一化后的真值框filled_labels[16,50,5] 值在0-1之间
@@ -84,8 +84,9 @@ def main():
                 optimizer.zero_grad()
                 # 得到网络输出值，作为损失 (loss :多尺度预测的总loss之和)
                 result = model(images)
-
+                # loss = model(images, targets)
                 loss = torch.zeros(1)
+                loss = loss.requires_grad_()  # type: torch.Tensor
 
                 for i in range(3):
                     resolution = result[i]
@@ -113,18 +114,16 @@ def main():
 
                     # Mask outputs to ignore non-existing objects  通过掩码来忽略 不存在物体
                     # mask 初始化全为0，只有  在3个原始锚框与 真值框 iou最大的那个锚框  对应的预测框位置置为1，即  负责检测物体的位置为1
-                    loss_x = lambda_coord * bce_loss(x * mask, tx * mask)
-                    loss_y = lambda_coord * bce_loss(y * mask, ty * mask)
-                    loss_w = lambda_coord * mse_loss(w * mask, tw * mask) / 2  # 为何 /2 ?
-                    loss_h = lambda_coord * mse_loss(h * mask, th * mask) / 2
+                    loss_x = lambda_coord * bce_loss(x * mask, tx * mask).requires_grad_()
+                    loss_y = lambda_coord * bce_loss(y * mask, ty * mask).requires_grad_()
+                    loss_w = (lambda_coord * mse_loss(w * mask, tw * mask) / 2).requires_grad_()  # 为何 /2 ?
+                    loss_h = (lambda_coord * mse_loss(h * mask, th * mask) / 2).requires_grad_()
                     # 有无物体损失  conf_mask  [16,3,13,13]  初始化全1，之后的操作：负责预测物体的网格置为1，它周围网格置为0
                     loss_conf = bce_loss(conf * conf_mask, tconf * conf_mask)
                     # 多分类损失
                     loss_cls = bce_loss(pred_cls * cls_mask, tcls * cls_mask)
                     loss = loss + loss_x + loss_y + loss_w + loss_h + loss_conf + loss_cls
                     # 总loss为 loss_x、loss_y、loss_w、loss_h、loss_conf、loss_cls之和
-
-                loss = loss.requires_grad_()    # type: torch.Tensor
 
                 t.set_description(  # 修改表头显示，增加时间和epoch显示
                     time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time())) +
@@ -139,7 +138,7 @@ def main():
                 optimizer.step()
                 loss_meter.add(loss.item())
 
-        if step % 2 == 0:
+        if step % 1 == 0:
             checkpoint = {'model': model.state_dict()}
             torch.save(checkpoint, train_cfg.checkpoint_dir + '/' + str(step) + 'yolov3.pt')
         print("第" + str(step) + "次epoch完成==========================")

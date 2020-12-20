@@ -9,6 +9,9 @@
 #   
 #    ( ˶˙º˙˶ )୨  Have Fun!!!
 # ================================================================
+import tensorflow as tf
+
+
 
 class train_config:
     epochs = 30  # 训练轮数
