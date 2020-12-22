@@ -20,6 +20,7 @@ from torch import nn
 from tqdm import trange
 import argparse
 import sys
+import numpy as np
 
 sys.path.append('..')
 
@@ -77,8 +78,7 @@ class yolo:
         # 得到网络输出值，作为损失 (loss :多尺度预测的总loss之和)
         result = self.model(images)
         # loss = model(images, targets)
-        loss = torch.zeros(1)
-        loss = loss.cuda().requires_grad_()  # type: torch.Tensor
+        loss = torch.zeros(1).cuda()    # type: torch.Tensor
 
         temp_gt_num = 0
         temp_right_num = 0
@@ -177,12 +177,12 @@ class yolo:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--step', type=int, default=64, metavar='N')
-    args = parser.parse_args()
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--step', type=int, default=64, metavar='N')
+    # args = parser.parse_args()
+    #
+    # step = args.step
 
-    step = args.step
-
-    yolo_instance = yolo(step)
-    yolo_instance.train()
-    del yolo_instance
+    for step in range(30):
+        yolo_instance = yolo(step)
+        yolo_instance.train()

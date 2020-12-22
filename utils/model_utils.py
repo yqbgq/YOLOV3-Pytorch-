@@ -111,7 +111,7 @@ def cal_statics(pred_boxes, labels: torch.Tensor, origin_anchors: torch.Tensor, 
             best_n = np.argmax(anchors_iou)
 
             # Get ground truth box [1,4]
-            gt_box = torch.FloatTensor([gt_x, gt_y, gt_w, gt_h]).unsqueeze(0).requires_grad_()
+            gt_box = torch.FloatTensor([gt_x, gt_y, gt_w, gt_h]).unsqueeze(0)
 
             # Get the best prediction  [1,4]
             # pred_boxes:在13x13尺度上的预测框
@@ -223,7 +223,7 @@ def decode(conv_output: torch.Tensor, i):
     anchor_w = anchor_w.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(w.shape)
 
     # Add offset and scale with anchors  给锚框添加偏移量和比例
-    pred_boxes = torch.Tensor(conv_output[..., :4].shape).requires_grad_()  # 新建一个tensor[16,3,13,13,4]
+    pred_boxes = torch.Tensor(conv_output[..., :4].shape)  # 新建一个tensor[16,3,13,13,4]
     # pred_boxes为 在13x13的feature map尺度上的预测框
     # x,y为预测值（网格内的坐标，经过sigmoid之后值为0-1之间） grid_x，grid_y定位网格左上角偏移坐标（值在0-12之间）
     pred_boxes[..., 0] = x.data + grid_x
