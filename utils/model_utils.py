@@ -59,14 +59,14 @@ def cal_statics(pred_boxes, labels: torch.Tensor, origin_anchors: torch.Tensor, 
     img_shape = feature_shape  # 特征图的大小 13 26 52
 
     # 初始化参数
-    conf_mask = torch.ones(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全1
-    mask = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    tx = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    ty = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    tw = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    th = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    tconf = torch.zeros(batch_size, anchors_num, img_shape, img_shape).cuda()  # [16,3,13,13]   全0
-    tcls = torch.zeros(batch_size, anchors_num, img_shape, img_shape, class_num).cuda()  # [16,3,13,
+    conf_mask = torch.ones(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全1
+    mask = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    tx = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    ty = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    tw = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    th = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    tconf = torch.zeros(batch_size, anchors_num, img_shape, img_shape)  # [16,3,13,13]   全0
+    tcls = torch.zeros(batch_size, anchors_num, img_shape, img_shape, class_num)  # [16,3,13,
     # 13,80]  全0
 
     gt_num = 0  # 真值的数量，用于计算召回率
@@ -111,7 +111,7 @@ def cal_statics(pred_boxes, labels: torch.Tensor, origin_anchors: torch.Tensor, 
             best_n = np.argmax(anchors_iou)
 
             # Get ground truth box [1,4]
-            gt_box = torch.FloatTensor([gt_x, gt_y, gt_w, gt_h]).unsqueeze(0).cuda().requires_grad_()
+            gt_box = torch.FloatTensor([gt_x, gt_y, gt_w, gt_h]).unsqueeze(0).requires_grad_()
 
             # Get the best prediction  [1,4]
             # pred_boxes:在13x13尺度上的预测框
@@ -177,7 +177,7 @@ def decode(conv_output: torch.Tensor, i):
     :return: 网格
     """
     # shape: [batch_size, 255, feature_map_shape, feature_map_shape]
-    conv_output = conv_output
+    conv_output = conv_output.cpu()
     conv_shape = conv_output.shape
     batch_size = conv_shape[0]
     output_size = conv_shape[2]
@@ -208,22 +208,22 @@ def decode(conv_output: torch.Tensor, i):
     #      view(x.shape)                      ->  resize成[16.3.13.13]的tensor
     # grid_x、grid_y用于 定位 feature map的网格左上角坐标
     grid_x = torch.linspace(0, output_size - 1, output_size).repeat(output_size, 1).repeat(
-        batch_size * 3, 1, 1).view(x.shape).cuda()  # [16.3.13.13]  每行内容为0-12,共13行
+        batch_size * 3, 1, 1).view(x.shape)  # [16.3.13.13]  每行内容为0-12,共13行
 
     grid_y = torch.linspace(0, output_size - 1, output_size).repeat(output_size, 1).t().repeat(
-        batch_size * 3, 1, 1).view(y.shape).cuda()  # [16.3.13.13]  每列内容为0-12,共13列（因为使用转置T）
+        batch_size * 3, 1, 1).view(y.shape)  # [16.3.13.13]  每列内容为0-12,共13列（因为使用转置T）
 
     scaled_anchors = torch.Tensor([(a_w / stride, a_h / stride) for a_w, a_h in anchors])  # 将 原图尺度的锚框也缩放到统一尺度下
 
-    anchor_w = scaled_anchors[:, 0][mask].cuda()
-    anchor_h = scaled_anchors[:, 1][mask].cuda()
+    anchor_w = scaled_anchors[:, 0][mask]
+    anchor_h = scaled_anchors[:, 1][mask]
 
     # 这里要判断一下是不是有 CUDA 然后转换到 GPU 上
     anchor_h = anchor_h.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(h.shape)
     anchor_w = anchor_w.repeat(batch_size, 1).repeat(1, 1, output_size * output_size).view(w.shape)
 
     # Add offset and scale with anchors  给锚框添加偏移量和比例
-    pred_boxes = torch.Tensor(conv_output[..., :4].shape).cuda().requires_grad_()  # 新建一个tensor[16,3,13,13,4]
+    pred_boxes = torch.Tensor(conv_output[..., :4].shape).requires_grad_()  # 新建一个tensor[16,3,13,13,4]
     # pred_boxes为 在13x13的feature map尺度上的预测框
     # x,y为预测值（网格内的坐标，经过sigmoid之后值为0-1之间） grid_x，grid_y定位网格左上角偏移坐标（值在0-12之间）
     pred_boxes[..., 0] = x.data + grid_x
