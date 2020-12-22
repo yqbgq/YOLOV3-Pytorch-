@@ -69,6 +69,9 @@ def main():
         # 清空仪表信息和混淆矩阵信息
         loss_meter.reset()
 
+        total_obs_num = 0
+        total_right_num = 0
+
         with trange(len(dataloader)) as t:
             iter_data = iter(dataloader)
             # 每轮epoch
@@ -86,7 +89,7 @@ def main():
                 result = model(images)
                 # loss = model(images, targets)
                 loss = torch.zeros(1)
-                loss = loss.requires_grad_()  # type: torch.Tensor
+                loss = loss.cuda().requires_grad_()  # type: torch.Tensor
 
                 for i in range(3):
                     resolution = result[i]
@@ -106,7 +109,10 @@ def main():
                     proposal_num = int((conf > 0.25).sum().item())
 
                     # 计算召回率
-                    recall = float(correct_num / gt_num) if gt_num else 1
+                    total_obs_num += gt_num
+                    total_right_num += correct_num
+                    # recall = float(correct_num / gt_num) if gt_num else 1
+                    recall = float(total_right_num / total_obs_num) if total_obs_num else 1
 
                     # Handle masks
 
@@ -114,10 +120,10 @@ def main():
 
                     # Mask outputs to ignore non-existing objects  通过掩码来忽略 不存在物体
                     # mask 初始化全为0，只有  在3个原始锚框与 真值框 iou最大的那个锚框  对应的预测框位置置为1，即  负责检测物体的位置为1
-                    loss_x = lambda_coord * bce_loss(x * mask, tx * mask).requires_grad_()
-                    loss_y = lambda_coord * bce_loss(y * mask, ty * mask).requires_grad_()
-                    loss_w = (lambda_coord * mse_loss(w * mask, tw * mask) / 2).requires_grad_()  # 为何 /2 ?
-                    loss_h = (lambda_coord * mse_loss(h * mask, th * mask) / 2).requires_grad_()
+                    loss_x = lambda_coord * bce_loss(x * mask, tx * mask)
+                    loss_y = lambda_coord * bce_loss(y * mask, ty * mask)
+                    loss_w = (lambda_coord * mse_loss(w * mask, tw * mask) / 2) # 为何 /2 ?
+                    loss_h = (lambda_coord * mse_loss(h * mask, th * mask) / 2)
                     # 有无物体损失  conf_mask  [16,3,13,13]  初始化全1，之后的操作：负责预测物体的网格置为1，它周围网格置为0
                     loss_conf = bce_loss(conf * conf_mask, tconf * conf_mask)
                     # 多分类损失
@@ -134,8 +140,10 @@ def main():
                                   + " Recall: {:.4f}%".format(recall * 100))
 
                 loss.backward()
+                # print(model.conv_set_1.conv_layer_0.conv_layer.weight)
                 # 更新优化器的可学习参数
                 optimizer.step()
+                # print(model.conv_set_1.conv_layer_0.conv_layer.weight)
                 loss_meter.add(loss.item())
 
         if step % 1 == 0:

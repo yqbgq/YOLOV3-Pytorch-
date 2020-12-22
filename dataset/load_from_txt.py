@@ -29,7 +29,8 @@ class txt_loader(data.Dataset):
             self.img_files = file.readlines()
         # 读取数据集中分配为训练集的txt文本（即标签，coco数据集以txt保存 框真值），以list形式保存
         self.label_files = [path.replace('images', 'labels').replace('.png', '.txt').replace('.jpg', '.txt') for path in
-                            self.img_files]
+                            self.img_files][:12]
+        self.img_files = self.img_files[:12]
         # 输入训练图像大小，即[416*416]
         self.img_shape = (img_size, img_size)
         self.max_objects = 50  # 设定一张图像最多真实存在50个物体（封装 图像真值框时使用到）

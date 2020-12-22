@@ -12,7 +12,6 @@
 
 import torch
 
-from utils import model_utils
 from .layers import *
 
 
@@ -25,11 +24,9 @@ class DarkNet(nn.Module):
         )
         self.feature_shape = [52, 26, 13]
 
-        self.loss = torch.zeros(1)
-
         self.lambda_coord = 1
-        self.mse_loss = nn.MSELoss()  # 均方误差 损失函数，计算 检测时的坐标损失
-        self.bce_loss = nn.BCELoss()  # 计算目标和输出之间的二进制交叉熵  损失函数，计算  多类别的分类损失
+        # self.mse_loss = nn.MSELoss()  # 均方误差 损失函数，计算 检测时的坐标损失
+        # self.bce_loss = nn.BCELoss()  # 计算目标和输出之间的二进制交叉熵  损失函数，计算  多类别的分类损失
         self.input_size = input_size
 
         self.__build_module()
@@ -125,4 +122,3 @@ class DarkNet(nn.Module):
         large_yolo_data = self.conv_yolo_3(r1)
 
         return large_yolo_data, middle_yolo_data, little_yolo_data
-

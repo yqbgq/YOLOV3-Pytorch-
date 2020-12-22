@@ -9,8 +9,6 @@
 #   
 #    ( ˶˙º˙˶ )୨  Have Fun!!!
 # ================================================================
-import tensorflow as tf
-
 
 
 class train_config:
@@ -29,7 +27,7 @@ class train_config:
     lr_decay = 0.1  # 1e-3 -> 1e-4
 
     checkpoint_interval = 1  # 每隔几个模型保存一次
-    checkpoint_dir = './checkpoints'  # 保存生成模型的路径
+    checkpoint_dir = '../checkpoints'  # 保存生成模型的路径
 
 
 class dataset_config:
